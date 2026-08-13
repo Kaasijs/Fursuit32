@@ -274,6 +274,7 @@
 
   <footer>
     <a class="subtitle" href="https://github.com/Kaasijs">A thingy made by Kaasijs UWU</a>
+    <p class="subtitle">version 1.0</p>
   </footer>
 
 <script>
@@ -336,7 +337,7 @@
   async function connect() {
     try {
       bleDevice = await navigator.bluetooth.requestDevice({
-        filters: [{ name: DEVICE_NAME }],
+        filters: [{ services: [SERVICE_UUID] }],
         optionalServices: [SERVICE_UUID],
       });
 

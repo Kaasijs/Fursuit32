@@ -267,7 +267,7 @@
           <input type="range" class="vslider" id="sliderFan" min="0" max="255" value="0" disabled>
         </div>
         <div class="slider-label">Fan</div>
-        <div class="pin-name">GPIO 27</div>
+        <div class="pin-name">GPIO 27 + 22</div>
       </div>
     </div>
   </div>
@@ -282,6 +282,7 @@
     '12345678-1234-1234-1234-123456789ab1',
     '12345678-1234-1234-1234-123456789ab2',
     '12345678-1234-1234-1234-123456789ab3',
+    '12345678-1234-1234-1234-123456789ab4',
   ];
   const DEVICE_NAME = 'Fursuit Kaasijs';
 
@@ -297,10 +298,11 @@
 
   // sliders[] pairs each UI slider with the characteristic UUID(s) it
   // should write to. LED drives two physical pins (chars 1 and 2) at
-  // once; Fan drives just the third.
+  // once; Fan drives just the third. lastSent/writing track state for
+  // the periodic sync loop below (see SYNC_INTERVAL_MS).
   const sliders = [
-    { input: sliderLed, valueEl: valLed, charUuids: [CHAR_UUIDS[0], CHAR_UUIDS[1]] },
-    { input: sliderFan, valueEl: valFan, charUuids: [CHAR_UUIDS[2]] },
+    { input: sliderLed, valueEl: valLed, charUuids: [CHAR_UUIDS[0], CHAR_UUIDS[1]], lastSent: null, writing: false },
+    { input: sliderFan, valueEl: valFan, charUuids: [CHAR_UUIDS[2], CHAR_UUIDS[3]], lastSent: null, writing: false },
   ];
 
   // Resolved BLECharacteristic objects, keyed by UUID, filled in on connect.
@@ -318,7 +320,10 @@
     statusText.classList.toggle('connected', isConnected);
     statusText.textContent = isConnected ? 'Connected' : 'Not connected';
     connectBtn.textContent = isConnected ? 'Disconnect' : 'Connect to device';
-    sliders.forEach(s => s.input.disabled = !isConnected);
+    sliders.forEach(s => {
+      s.input.disabled = !isConnected;
+      if (isConnected) s.lastSent = null;  // force a push of current position
+    });
   }
 
   function updateFill(slider) {
@@ -366,32 +371,49 @@
     }
   });
 
-  sliders.forEach(({ input, valueEl, charUuids }) => {
-    let pending = false;
-
+  // 'input' just updates the on-screen number/fill instantly, for a
+  // responsive feel — it does NOT write over BLE. Actual writes happen
+  // below in the periodic sync loop.
+  sliders.forEach(({ input, valueEl }) => {
     input.addEventListener('input', () => {
       valueEl.textContent = input.value;
       updateFill(input);
-
-      if (pending) return;
-      pending = true;
-
-      requestAnimationFrame(async () => {
-        pending = false;
-        const duty = new Uint8Array([parseInt(input.value, 10)]);
-
-        for (const uuid of charUuids) {
-          const characteristic = characteristicsByUuid[uuid];
-          if (!characteristic) continue;
-          try {
-            await characteristic.writeValue(duty);
-          } catch (err) {
-            console.error(`Write failed on ${uuid}:`, err);
-          }
-        }
-      });
     });
   });
+
+  // Periodic sync: every SYNC_INTERVAL_MS, check each slider's current
+  // position and write it only if it changed since the last successful
+  // write, and only if that slider isn't already mid-write. This is
+  // deliberately decoupled from the 'input' event, which can fire far
+  // faster than BLE writes can complete — writing on every event caused
+  // overlapping writes that silently failed, which was why a fast flick
+  // to 0 often didn't register.
+  const SYNC_INTERVAL_MS = 100;
+
+  setInterval(() => {
+    sliders.forEach(async (s) => {
+      if (s.input.disabled || s.writing) return;
+
+      const current = parseInt(s.input.value, 10);
+      if (current === s.lastSent) return;
+
+      s.writing = true;
+      const duty = new Uint8Array([current]);
+
+      for (const uuid of s.charUuids) {
+        const characteristic = characteristicsByUuid[uuid];
+        if (!characteristic) continue;
+        try {
+          await characteristic.writeValue(duty);
+        } catch (err) {
+          console.error(`Write failed on ${uuid}:`, err);
+        }
+      }
+
+      s.lastSent = current;
+      s.writing = false;
+    });
+  }, SYNC_INTERVAL_MS);
 </script>
 
 </body>

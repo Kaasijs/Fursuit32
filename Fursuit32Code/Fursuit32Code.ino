@@ -8,7 +8,7 @@
 // ---------- Configurable pins ----------
 const int PIN_1 = 25;
 const int PIN_2 = 26;
-const int PIN_3 = 35;
+const int PIN_3 = 27;  // was 35 — that pin is input-only, can't drive PWM
 
 // ---------- PWM (LEDC) config ----------
 // Newer ESP32 Arduino core (3.x) addresses LEDC by pin number
@@ -46,10 +46,17 @@ class ServerCallbacks : public BLEServerCallbacks {
 // ---------- Shared write handler ----------
 // Reads a single byte from the characteristic and applies it
 // as the PWM duty cycle on the given pin.
+//
+// NOTE: we read raw bytes via getData()/getLength() instead of
+// getValue() as a String. Arduino's String treats a 0x00 byte
+// as a terminator, so a written value of 0 would come back as
+// a zero-length String and silently get skipped — that was the
+// bug behind "setting the slider to 0 doesn't work".
 void applyPwmFromCharacteristic(BLECharacteristic *characteristic, int pin, const char *label) {
-  String value = characteristic->getValue();
-  if (value.length() > 0) {
-    uint8_t duty = (uint8_t)value[0];   // 0-255
+  uint8_t *data = characteristic->getData();
+  size_t len = characteristic->getLength();
+  if (len > 0 && data != nullptr) {
+    uint8_t duty = data[0];   // 0-255
     ledcWrite(pin, duty);
     Serial.printf("%s -> duty %d\n", label, duty);
   }

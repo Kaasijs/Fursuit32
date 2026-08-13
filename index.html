@@ -151,7 +151,7 @@
   .slider-track {
     position: relative;
     width: 100%;
-    height: clamp(160px, 40vw, 260px);
+    height: clamp(240px, 55vw, 380px);
     display: flex;
     justify-content: center;
   }
@@ -159,7 +159,7 @@
   input[type="range"].vslider {
     writing-mode: vertical-lr;
     direction: rtl;
-    width: 44px;
+    width: 64px;
     height: 100%;
     -webkit-appearance: none;
     appearance: none;
@@ -169,42 +169,42 @@
   }
 
   input[type="range"].vslider::-webkit-slider-runnable-track {
-    width: 10px;
-    border-radius: 6px;
+    width: 22px;
+    border-radius: 11px;
     background: var(--panel-line);
   }
 
   input[type="range"].vslider::-webkit-slider-thumb {
     -webkit-appearance: none;
-    width: 26px;
-    height: 26px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
     background: var(--white);
-    border: 3px solid var(--bg);
-    margin-left: -8px;
+    border: 4px solid var(--bg);
+    margin-left: -11px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
   }
 
   input[type="range"].vslider::-moz-range-track {
-    width: 10px;
-    border-radius: 6px;
+    width: 22px;
+    border-radius: 11px;
     background: var(--panel-line);
   }
 
   input[type="range"].vslider::-moz-range-thumb {
-    width: 20px;
-    height: 20px;
+    width: 38px;
+    height: 38px;
     border-radius: 50%;
     background: var(--white);
-    border: 3px solid var(--bg);
+    border: 4px solid var(--bg);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
   }
 
-  .pin-1 input[type="range"]::-webkit-slider-runnable-track { background: linear-gradient(0deg, var(--blue) var(--fill, 0%), var(--panel-line) var(--fill, 0%)); }
-  .pin-2 input[type="range"]::-webkit-slider-runnable-track { background: linear-gradient(0deg, var(--pink) var(--fill, 0%), var(--panel-line) var(--fill, 0%)); }
-  .pin-3 input[type="range"]::-webkit-slider-runnable-track { background: linear-gradient(0deg, var(--white) var(--fill, 0%), var(--panel-line) var(--fill, 0%)); }
+  .pin-led input[type="range"]::-webkit-slider-runnable-track { background: linear-gradient(0deg, var(--blue) 0%, var(--pink) var(--fill, 0%), var(--panel-line) var(--fill, 0%)); }
+  .pin-fan input[type="range"]::-webkit-slider-runnable-track { background: linear-gradient(0deg, var(--white) var(--fill, 0%), var(--panel-line) var(--fill, 0%)); }
 
-  .pin-1 .slider-value { color: var(--blue); }
-  .pin-2 .slider-value { color: var(--pink); }
-  .pin-3 .slider-value { color: var(--white); }
+  .pin-led .slider-value { color: var(--pink); }
+  .pin-fan .slider-value { color: var(--white); }
 
   .pin-name {
     font-size: 0.68rem;
@@ -237,8 +237,7 @@
 <body>
 
   <header>
-    <h1>PWM Control</h1>
-    <p class="subtitle">ESP32-PWM-Test &middot; 3 channel duty cycle</p>
+    <h1>My Fursuit32</h1>
     <div class="status-row">
       <div class="status-dot" id="statusDot"></div>
       <span class="status-text" id="statusText">Not connected</span>
@@ -253,37 +252,28 @@
 
   <div class="panel">
     <div class="sliders">
-      <div class="slider-col pin-1">
-        <div class="slider-value" id="val1">0</div>
+      <div class="slider-col pin-led">
+        <div class="slider-value" id="valLed">0</div>
         <div class="slider-track">
-          <input type="range" class="vslider" id="slider1" min="0" max="255" value="0" disabled>
+          <input type="range" class="vslider" id="sliderLed" min="0" max="255" value="0" disabled>
         </div>
-        <div class="slider-label">Pin 1</div>
-        <div class="pin-name">GPIO 25</div>
+        <div class="slider-label">LED</div>
+        <div class="pin-name">GPIO 25 + 26</div>
       </div>
 
-      <div class="slider-col pin-2">
-        <div class="slider-value" id="val2">0</div>
+      <div class="slider-col pin-fan">
+        <div class="slider-value" id="valFan">0</div>
         <div class="slider-track">
-          <input type="range" class="vslider" id="slider2" min="0" max="255" value="0" disabled>
+          <input type="range" class="vslider" id="sliderFan" min="0" max="255" value="0" disabled>
         </div>
-        <div class="slider-label">Pin 2</div>
-        <div class="pin-name">GPIO 26</div>
-      </div>
-
-      <div class="slider-col pin-3">
-        <div class="slider-value" id="val3">0</div>
-        <div class="slider-track">
-          <input type="range" class="vslider" id="slider3" min="0" max="255" value="0" disabled>
-        </div>
-        <div class="slider-label">Pin 3</div>
+        <div class="slider-label">Fan</div>
         <div class="pin-name">GPIO 27</div>
       </div>
     </div>
   </div>
 
   <footer>
-    Tap connect, choose "ESP32-PWM-Test" from the picker, then drag any slider. Values write live over BLE (0&ndash;255 duty).
+    <a class="subtitle" href="https://github.com/Kaasijs">A thingy made by Kaasijs UWU</a>
   </footer>
 
 <script>
@@ -293,17 +283,28 @@
     '12345678-1234-1234-1234-123456789ab2',
     '12345678-1234-1234-1234-123456789ab3',
   ];
-  const DEVICE_NAME = 'ESP32-PWM-Test';
+  const DEVICE_NAME = 'Fursuit Kaasijs';
 
   const connectBtn = document.getElementById('connectBtn');
   const statusDot = document.getElementById('statusDot');
   const statusText = document.getElementById('statusText');
   const browserWarning = document.getElementById('browserWarning');
 
-  const sliders = [1, 2, 3].map(n => document.getElementById(`slider${n}`));
-  const values  = [1, 2, 3].map(n => document.getElementById(`val${n}`));
+  const sliderLed = document.getElementById('sliderLed');
+  const sliderFan = document.getElementById('sliderFan');
+  const valLed = document.getElementById('valLed');
+  const valFan = document.getElementById('valFan');
 
-  let characteristics = [null, null, null];
+  // sliders[] pairs each UI slider with the characteristic UUID(s) it
+  // should write to. LED drives two physical pins (chars 1 and 2) at
+  // once; Fan drives just the third.
+  const sliders = [
+    { input: sliderLed, valueEl: valLed, charUuids: [CHAR_UUIDS[0], CHAR_UUIDS[1]] },
+    { input: sliderFan, valueEl: valFan, charUuids: [CHAR_UUIDS[2]] },
+  ];
+
+  // Resolved BLECharacteristic objects, keyed by UUID, filled in on connect.
+  let characteristicsByUuid = {};
   let bleDevice = null;
 
   if (!navigator.bluetooth) {
@@ -317,7 +318,7 @@
     statusText.classList.toggle('connected', isConnected);
     statusText.textContent = isConnected ? 'Connected' : 'Not connected';
     connectBtn.textContent = isConnected ? 'Disconnect' : 'Connect to device';
-    sliders.forEach(s => s.disabled = !isConnected);
+    sliders.forEach(s => s.input.disabled = !isConnected);
   }
 
   function updateFill(slider) {
@@ -325,7 +326,7 @@
     slider.style.setProperty('--fill', pct + '%');
   }
 
-  sliders.forEach(updateFill);
+  sliders.forEach(s => updateFill(s.input));
 
   async function connect() {
     try {
@@ -339,8 +340,9 @@
       const server = await bleDevice.gatt.connect();
       const service = await server.getPrimaryService(SERVICE_UUID);
 
-      for (let i = 0; i < 3; i++) {
-        characteristics[i] = await service.getCharacteristic(CHAR_UUIDS[i]);
+      characteristicsByUuid = {};
+      for (const uuid of CHAR_UUIDS) {
+        characteristicsByUuid[uuid] = await service.getCharacteristic(uuid);
       }
 
       setConnected(true);
@@ -352,7 +354,7 @@
 
   function onDisconnected() {
     setConnected(false);
-    characteristics = [null, null, null];
+    characteristicsByUuid = {};
   }
 
   connectBtn.addEventListener('click', async () => {
@@ -364,24 +366,28 @@
     }
   });
 
-  sliders.forEach((slider, i) => {
+  sliders.forEach(({ input, valueEl, charUuids }) => {
     let pending = false;
 
-    slider.addEventListener('input', () => {
-      values[i].textContent = slider.value;
-      updateFill(slider);
+    input.addEventListener('input', () => {
+      valueEl.textContent = input.value;
+      updateFill(input);
 
       if (pending) return;
       pending = true;
 
       requestAnimationFrame(async () => {
         pending = false;
-        const characteristic = characteristics[i];
-        if (!characteristic) return;
-        try {
-          await characteristic.writeValue(new Uint8Array([parseInt(slider.value, 10)]));
-        } catch (err) {
-          console.error(`Write failed on pin ${i + 1}:`, err);
+        const duty = new Uint8Array([parseInt(input.value, 10)]);
+
+        for (const uuid of charUuids) {
+          const characteristic = characteristicsByUuid[uuid];
+          if (!characteristic) continue;
+          try {
+            await characteristic.writeValue(duty);
+          } catch (err) {
+            console.error(`Write failed on ${uuid}:`, err);
+          }
         }
       });
     });

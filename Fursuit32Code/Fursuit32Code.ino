@@ -12,6 +12,16 @@ const int PIN_3 = 27;  // was 35 — that pin is input-only, can't drive PWM
 const int PIN_4 = 22;  // second motor pin, driven together with PIN_3 by the Fan slider
 const int PINS[4] = { PIN_1, PIN_2, PIN_3, PIN_4 };
 
+// ---------- Battery monitoring ----------
+// Voltage divider (2x 100k) halves the LiPo voltage before it
+// reaches the ADC pin, so real battery voltage = 2x what we read.
+const int BATTERY_PIN = 34;
+const float DIVIDER_RATIO = 2.0;      // R1=R2=100k -> divide by 2
+const float BATTERY_EMPTY_V = 3.3;    // rough single-cell LiPo empty cutoff
+const float BATTERY_FULL_V = 4.2;     // single-cell LiPo full charge
+const unsigned long BATTERY_READ_INTERVAL_MS = 5000;  // how often to sample
+unsigned long lastBatteryReadTime = 0;
+
 // ---------- Duty ramping ----------
 // BLE writes only set the *target* duty. The main loop steps the
 // actual PWM output toward that target a little at a time instead
@@ -38,12 +48,14 @@ const int PWM_RESOLUTION = 8;    // 8-bit -> duty range 0-255
 #define CHARACTERISTIC_UUID_2 "12345678-1234-1234-1234-123456789ab2"
 #define CHARACTERISTIC_UUID_3 "12345678-1234-1234-1234-123456789ab3"
 #define CHARACTERISTIC_UUID_4 "12345678-1234-1234-1234-123456789ab4"
+#define CHARACTERISTIC_UUID_BATTERY "12345678-1234-1234-1234-123456789ab5"
 
 BLEServer *pServer = nullptr;
 BLECharacteristic *pChar1 = nullptr;
 BLECharacteristic *pChar2 = nullptr;
 BLECharacteristic *pChar3 = nullptr;
 BLECharacteristic *pChar4 = nullptr;
+BLECharacteristic *pCharBattery = nullptr;
 
 bool deviceConnected = false;
 
@@ -100,6 +112,22 @@ class Pin4Callback : public BLECharacteristicCallbacks {
   }
 };
 
+// ---------- Battery reading ----------
+// analogReadMilliVolts() gives calibrated millivolts at the pin
+// (accounting for the ESP32's ADC attenuation/calibration), which
+// is more accurate than raw analogRead() counts. We then undo the
+// voltage divider and map the result to a rough 0-100% estimate.
+// Note: LiPo discharge isn't linear, so this is an approximation,
+// not a precise fuel gauge — good enough for "roughly how full".
+uint8_t readBatteryPercent() {
+  uint32_t pinMilliVolts = analogReadMilliVolts(BATTERY_PIN);
+  float batteryVolts = (pinMilliVolts / 1000.0) * DIVIDER_RATIO;
+
+  float percent = (batteryVolts - BATTERY_EMPTY_V) / (BATTERY_FULL_V - BATTERY_EMPTY_V) * 100.0;
+  percent = constrain(percent, 0.0, 100.0);
+  return (uint8_t)percent;
+}
+
 void setup() {
   Serial.begin(115200);
   delay(500);
@@ -148,6 +176,14 @@ void setup() {
   pChar4->setCallbacks(new Pin4Callback());
   pChar4->setValue("0");
 
+  // Battery is read-only from the client's side — the page polls
+  // it periodically rather than the ESP32 pushing updates.
+  pCharBattery = pService->createCharacteristic(
+      CHARACTERISTIC_UUID_BATTERY,
+      BLECharacteristic::PROPERTY_READ);
+  uint8_t initialBattery = readBatteryPercent();
+  pCharBattery->setValue(&initialBattery, 1);
+
   pService->start();
 
   // Start advertising so phones can find it
@@ -161,20 +197,26 @@ void setup() {
 
 void loop() {
   unsigned long now = millis();
-  if (now - lastRampTime < RAMP_INTERVAL_MS) {
-    return;
-  }
-  lastRampTime = now;
 
-  for (int i = 0; i < 4; i++) {
-    uint8_t target = targetDuty[i];  // snapshot — BLE task could change it mid-loop
-    if (currentDuty[i] == target) continue;
+  if (now - lastRampTime >= RAMP_INTERVAL_MS) {
+    lastRampTime = now;
 
-    if (currentDuty[i] < target) {
-      currentDuty[i] = min((int)target, currentDuty[i] + RAMP_STEP);
-    } else {
-      currentDuty[i] = max((int)target, currentDuty[i] - RAMP_STEP);
+    for (int i = 0; i < 4; i++) {
+      uint8_t target = targetDuty[i];  // snapshot — BLE task could change it mid-loop
+      if (currentDuty[i] == target) continue;
+
+      if (currentDuty[i] < target) {
+        currentDuty[i] = min((int)target, currentDuty[i] + RAMP_STEP);
+      } else {
+        currentDuty[i] = max((int)target, currentDuty[i] - RAMP_STEP);
+      }
+      ledcWrite(PINS[i], currentDuty[i]);
     }
-    ledcWrite(PINS[i], currentDuty[i]);
+  }
+
+  if (now - lastBatteryReadTime >= BATTERY_READ_INTERVAL_MS) {
+    lastBatteryReadTime = now;
+    uint8_t batteryPercent = readBatteryPercent();
+    pCharBattery->setValue(&batteryPercent, 1);
   }
 }

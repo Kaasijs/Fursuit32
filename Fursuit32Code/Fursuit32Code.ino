@@ -15,7 +15,7 @@ const int PINS[4] = { PIN_1, PIN_2, PIN_3, PIN_4 };
 // ---------- Battery monitoring ----------
 // Voltage divider (2x 100k) halves the LiPo voltage before it
 // reaches the ADC pin, so real battery voltage = 2x what we read.
-const int BATTERY_PIN = 34;
+const int BATTERY_PIN = 35;
 const float DIVIDER_RATIO = 2.0;      // R1=R2=100k -> divide by 2
 const float BATTERY_EMPTY_V = 3.3;    // rough single-cell LiPo empty cutoff
 const float BATTERY_FULL_V = 4.2;     // single-cell LiPo full charge
@@ -125,6 +125,10 @@ uint8_t readBatteryPercent() {
 
   float percent = (batteryVolts - BATTERY_EMPTY_V) / (BATTERY_FULL_V - BATTERY_EMPTY_V) * 100.0;
   percent = constrain(percent, 0.0, 100.0);
+
+  Serial.printf("Battery debug -> pin: %u mV, calculated battery: %.2f V, percent: %.0f%%\n",
+                pinMilliVolts, batteryVolts, percent);
+
   return (uint8_t)percent;
 }
 

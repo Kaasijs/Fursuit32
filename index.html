@@ -9,7 +9,7 @@
     --blue: #5BCEFA;
     --pink: #F5A9B8;
     --white: #FFFFFF;
-    --bg: #141416;
+    --bg: #131213;
     --panel: #1c1c1f;
     --panel-line: #2a2a2e;
     --text-dim: #8a8a90;
@@ -20,7 +20,10 @@
   html, body {
     margin: 0;
     min-height: 100vh;
-    background: var(--bg);
+    background:
+      linear-gradient(180deg, rgba(0, 0, 0, 0.495) 0%, rgba(0, 0, 0, 0.585) 30%, rgba(31, 24, 29, 0.96) 100%),
+      url("background.png?v=2") center top / cover no-repeat;
+    background-color: var(--bg);
     color: var(--white);
     font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
     -webkit-font-smoothing: antialiased;
@@ -40,6 +43,18 @@
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+  }
+
+  .title-wrap {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .title-img {
+    width: clamp(150px, 42vw, 230px);
+    height: auto;
+    filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.55));
   }
 
   h1 {
@@ -104,6 +119,7 @@
     cursor: pointer;
     width: 100%;
     max-width: 480px;
+    box-shadow: 0 4px 20px rgba(91, 206, 250, 0.25), 0 4px 20px rgba(245, 169, 184, 0.15);
     transition: opacity 0.15s ease, transform 0.1s ease;
   }
 
@@ -114,10 +130,13 @@
   .panel {
     width: 100%;
     max-width: 480px;
-    background: var(--panel);
+    background: rgba(20, 20, 23, 0.88);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     border: 1px solid var(--panel-line);
     border-radius: 16px;
     padding: clamp(1.25rem, 4vw, 2rem);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(91, 206, 250, 0.06);
   }
 
   .sliders {
@@ -220,6 +239,16 @@
     text-align: center;
   }
 
+  footer a.subtitle {
+    color: var(--text-dim);
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+
+  footer a.subtitle:hover {
+    color: var(--pink);
+  }
+
   .browser-warning {
     max-width: 480px;
     width: 100%;
@@ -285,8 +314,12 @@
 </head>
 <body>
 
+  <div class="title-wrap">
+    <img src="title.png" alt="Kaasijs" class="title-img">
+  </div>
+
   <header>
-    <h1>My Fursuit32</h1>
+    <h1>My Fursuit32 | Kaasijs</h1>
     <div class="status-row">
       <div class="status-dot" id="statusDot"></div>
       <span class="status-text" id="statusText">Not connected</span>
@@ -303,7 +336,7 @@
     This browser doesn't support Web Bluetooth. On iPhone, open this page inside the <strong>Bluefy</strong> app instead of Safari directly.
   </div>
 
-  <button class="connect-btn" id="connectBtn">Connect to device</button>
+  <button class="connect-btn" id="connectBtn">Connect to fursuit</button>
 
   <div class="panel">
     <div class="sliders">
@@ -312,7 +345,7 @@
         <div class="slider-track">
           <input type="range" class="vslider" id="sliderLed" min="0" max="255" value="0" disabled>
         </div>
-        <div class="slider-label">LED</div>
+        <div class="slider-label">LEDS</div>
         <div class="pin-name">GPIO 25 + 26</div>
       </div>
 

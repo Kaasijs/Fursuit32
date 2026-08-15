@@ -1,3 +1,5 @@
+<p align="center"><img src="https://kaasijs.github.io/Fursuit32/title.png" width="450"></p>
+
 # Welcome to Fursuit32! 🐾
 this is a hobby project of mine that provides an 'easy' confgurable ESP32 interface.
 Fursuit32 uses Bluetooth Low Energy (BLE), allowing you to configure and customize how you interact with for example lights and/or fans in your fursuit.

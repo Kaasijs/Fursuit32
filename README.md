@@ -15,8 +15,8 @@ Fursuit32 uses Bluetooth Low Energy (BLE), allowing you to configure and customi
 4. Flash the Fursuit32 firmware to your ESP32.
 5. Open the Fursuit32 web interface in a browser that supports BLE. On iOS, Bluefy is one supported option.
 6. Connect to your Fursuit32:
-  6.1. On first boot it might take a few trys. the closer the better. when connected it will ask you to configure your pins to sliders. you can wire an LEDS to GPIO 25 and 26. and combine the 2 pins for an LED slider. you can put them in the eyes or paws or where ever you like :3
-  6.2. You can customize the looks of the thing by pressing
+6.1. On first boot it might take a few trys. the closer the better. when connected it will ask you to configure your pins to sliders. you can wire an LEDS to GPIO 25 and 26. and combine the 2 pins for an LED slider. you can put them in the eyes or paws or where ever you like :3
+6.2. You can customize the looks of the thing by pressing
 7. Customize it to your needs and have fun!
 
 # Setup NFC with Bluefy and Fursuit32

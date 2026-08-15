@@ -4,34 +4,6 @@
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <BLE2902.h>
-#include <Preferences.h>  // built into the ESP32 core — no new library install needed
-
-// ---------- Channel configuration storage ----------
-// The 4 physical pins are fixed in hardware, but which of them get
-// grouped into a labeled slider is configurable from the web page.
-// That grouping is just an opaque JSON string as far as the ESP32
-// is concerned — we don't parse it here, just store/return it, so
-// no JSON library is needed on this side. Format (decided by the
-// web page): [{"label":"Ears","pins":[0,1]}, {"label":"Tail","pins":[2,3]}]
-// where each pin index maps to PINS[index] below. An empty "[]"
-// means no config has been saved yet — that's what tells the page
-// to show the first-time setup wizard.
-Preferences prefs;
-String savedChannelConfig = "[]";
-
-// ---------- Device name & site settings ----------
-// The BLE advertised name doubles as the "display name" the page shows
-// in its header. Default is "Fursuit32" the very first time this runs
-// (nothing saved yet); after that whatever was last saved is used.
-// Changing the name requires re-advertising, which the BLE stack here
-// can only do cleanly via a restart — see NameCallback below.
-String savedDeviceName = "Fursuit32";
-
-// Icon/background image URLs are pure passthrough, same idea as the
-// channel config — the ESP32 doesn't care what's in here, it just
-// stores and returns it. Empty fields mean "use the page's local
-// default image". Format: {"icon":"<url or empty>","background":"<url or empty>"}
-String savedSiteSettings = "{}";
 
 // ---------- Configurable pins ----------
 const int PIN_1 = 25;
@@ -77,9 +49,6 @@ const int PWM_RESOLUTION = 8;    // 8-bit -> duty range 0-255
 #define CHARACTERISTIC_UUID_3 "12345678-1234-1234-1234-123456789ab3"
 #define CHARACTERISTIC_UUID_4 "12345678-1234-1234-1234-123456789ab4"
 #define CHARACTERISTIC_UUID_BATTERY "12345678-1234-1234-1234-123456789ab5"
-#define CHARACTERISTIC_UUID_CONFIG "12345678-1234-1234-1234-123456789ab6"
-#define CHARACTERISTIC_UUID_NAME "12345678-1234-1234-1234-123456789ab7"
-#define CHARACTERISTIC_UUID_SITE "12345678-1234-1234-1234-123456789ab8"
 
 BLEServer *pServer = nullptr;
 BLECharacteristic *pChar1 = nullptr;
@@ -87,9 +56,6 @@ BLECharacteristic *pChar2 = nullptr;
 BLECharacteristic *pChar3 = nullptr;
 BLECharacteristic *pChar4 = nullptr;
 BLECharacteristic *pCharBattery = nullptr;
-BLECharacteristic *pCharConfig = nullptr;
-BLECharacteristic *pCharName = nullptr;
-BLECharacteristic *pCharSite = nullptr;
 
 bool deviceConnected = false;
 
@@ -153,117 +119,23 @@ class Pin4Callback : public BLECharacteristicCallbacks {
 // voltage divider and map the result to a rough 0-100% estimate.
 // Note: LiPo discharge isn't linear, so this is an approximation,
 // not a precise fuel gauge — good enough for "roughly how full".
-// ---------- Battery reading ----------
-// analogReadMilliVolts() gives calibrated millivolts at the pin
-// (accounting for the ESP32's ADC attenuation/calibration), which
-// is more accurate than raw analogRead() counts. We then undo the
-// voltage divider and map the result to a rough 0-100% estimate.
-// Note: LiPo discharge isn't linear, so this is an approximation,
-// not a precise fuel gauge — good enough for "roughly how full".
-//
-// The raw reading also sags under load: pulling current for the
-// motor/LEDs briefly drops the battery's terminal voltage due to
-// its internal resistance, even though true charge hasn't changed.
-// We smooth readings with an exponential moving average so a
-// motor spin-up doesn't make the percentage visibly jump around —
-// smoothedBatteryPercent is what actually gets reported over BLE.
-float smoothedBatteryPercent = -1;  // -1 = not yet initialized
-const float BATTERY_SMOOTHING_ALPHA = 0.15;  // lower = smoother/slower to react
-
 uint8_t readBatteryPercent() {
   uint32_t pinMilliVolts = analogReadMilliVolts(BATTERY_PIN);
   float batteryVolts = (pinMilliVolts / 1000.0) * DIVIDER_RATIO;
 
-  float rawPercent = (batteryVolts - BATTERY_EMPTY_V) / (BATTERY_FULL_V - BATTERY_EMPTY_V) * 100.0;
-  rawPercent = constrain(rawPercent, 0.0, 100.0);
+  float percent = (batteryVolts - BATTERY_EMPTY_V) / (BATTERY_FULL_V - BATTERY_EMPTY_V) * 100.0;
+  percent = constrain(percent, 0.0, 100.0);
 
-  if (smoothedBatteryPercent < 0) {
-    smoothedBatteryPercent = rawPercent;  // first reading — snap to it directly
-  } else {
-    smoothedBatteryPercent += (rawPercent - smoothedBatteryPercent) * BATTERY_SMOOTHING_ALPHA;
-  }
+  Serial.printf("Battery debug -> pin: %u mV, calculated battery: %.2f V, percent: %.0f%%\n",
+                pinMilliVolts, batteryVolts, percent);
 
-  Serial.printf("Battery debug -> pin: %u mV, raw: %.0f%%, smoothed: %.0f%%\n",
-                pinMilliVolts, rawPercent, smoothedBatteryPercent);
-
-  return (uint8_t)smoothedBatteryPercent;
+  return (uint8_t)percent;
 }
-
-// Saves whatever JSON the page writes here straight to flash, no
-// parsing needed on this side. Also zeroes every pin's target duty
-// as a safety measure — if the page is reassigning which pins mean
-// what, we don't want a pin left spinning at a stale value under
-// its old label.
-class ConfigCallback : public BLECharacteristicCallbacks {
-  void onWrite(BLECharacteristic *characteristic) override {
-    uint8_t *data = characteristic->getData();
-    size_t len = characteristic->getLength();
-    if (data == nullptr) return;
-
-    String newConfig = "";
-    for (size_t i = 0; i < len; i++) newConfig += (char)data[i];
-
-    savedChannelConfig = newConfig;
-    prefs.putString("cfg", savedChannelConfig);
-
-    for (int i = 0; i < 4; i++) targetDuty[i] = 0;
-
-    Serial.println("Config saved: " + savedChannelConfig);
-  }
-};
-
-// Changing the BLE advertised name isn't something this BLE stack can
-// do live — it's set once at BLEDevice::init() and stays fixed after
-// that. The reliable way to actually re-advertise under a new name is
-// to save it and reboot. The page knows this happens and tells the
-// user to reconnect after a few seconds.
-class NameCallback : public BLECharacteristicCallbacks {
-  void onWrite(BLECharacteristic *characteristic) override {
-    uint8_t *data = characteristic->getData();
-    size_t len = characteristic->getLength();
-    if (data == nullptr || len == 0) return;
-
-    String newName = "";
-    for (size_t i = 0; i < len; i++) newName += (char)data[i];
-
-    prefs.putString("name", newName);
-    Serial.println("Name changed to '" + newName + "' — restarting to re-advertise...");
-    delay(300);  // give the BLE write response a moment to actually go out before we drop the connection
-    ESP.restart();
-  }
-};
-
-// Icon/background URLs — pure passthrough like ConfigCallback, no
-// restart needed since these only affect how the page renders itself.
-class SiteCallback : public BLECharacteristicCallbacks {
-  void onWrite(BLECharacteristic *characteristic) override {
-    uint8_t *data = characteristic->getData();
-    size_t len = characteristic->getLength();
-    if (data == nullptr) return;
-
-    String newSettings = "";
-    for (size_t i = 0; i < len; i++) newSettings += (char)data[i];
-
-    savedSiteSettings = newSettings;
-    prefs.putString("site", savedSiteSettings);
-
-    Serial.println("Site settings saved: " + savedSiteSettings);
-  }
-};
 
 void setup() {
   Serial.begin(115200);
   delay(500);
   Serial.println("Starting Fursuit32...");
-
-  // ---- Load saved channel config, name, and site settings from flash ----
-  prefs.begin("fursuit32", false);
-  savedChannelConfig = prefs.getString("cfg", "[]");
-  savedDeviceName = prefs.getString("name", "Fursuit32");
-  savedSiteSettings = prefs.getString("site", "{}");
-  Serial.println("Loaded config: " + savedChannelConfig);
-  Serial.println("Loaded name: " + savedDeviceName);
-  Serial.println("Loaded site settings: " + savedSiteSettings);
 
   // ---- Set up PWM (LEDC) on the 4 pins ----
   ledcAttach(PIN_1, PWM_FREQ, PWM_RESOLUTION);
@@ -278,7 +150,7 @@ void setup() {
   ledcWrite(PIN_4, 0);
 
   // ---- Set up BLE ----
-  BLEDevice::init(savedDeviceName.c_str());
+  BLEDevice::init("Fursuit Kaasijs");
   pServer = BLEDevice::createServer();
   pServer->setCallbacks(new ServerCallbacks());
 
@@ -316,31 +188,6 @@ void setup() {
   uint8_t initialBattery = readBatteryPercent();
   pCharBattery->setValue(&initialBattery, 1);
 
-  // Config is read (page fetches current channel setup on connect)
-  // and write (page saves new/edited setup). setValue with an
-  // explicit length since this is a variable-length text blob.
-  pCharConfig = pService->createCharacteristic(
-      CHARACTERISTIC_UUID_CONFIG,
-      BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE);
-  pCharConfig->setCallbacks(new ConfigCallback());
-  pCharConfig->setValue((uint8_t *)savedChannelConfig.c_str(), savedChannelConfig.length());
-
-  // Device name — read (page shows it as the title) and write (page
-  // saves a new one). A write triggers a restart, see NameCallback.
-  pCharName = pService->createCharacteristic(
-      CHARACTERISTIC_UUID_NAME,
-      BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE);
-  pCharName->setCallbacks(new NameCallback());
-  pCharName->setValue((uint8_t *)savedDeviceName.c_str(), savedDeviceName.length());
-
-  // Site settings (icon/background URLs) — same opaque passthrough
-  // pattern as channel config, no restart needed to apply.
-  pCharSite = pService->createCharacteristic(
-      CHARACTERISTIC_UUID_SITE,
-      BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE);
-  pCharSite->setCallbacks(new SiteCallback());
-  pCharSite->setValue((uint8_t *)savedSiteSettings.c_str(), savedSiteSettings.length());
-
   pService->start();
 
   // Start advertising so phones can find it
@@ -349,7 +196,7 @@ void setup() {
   pAdvertising->setScanResponse(true);
   BLEDevice::startAdvertising();
 
-  Serial.println("Fursuit32 BLE advertising started. Look for '" + savedDeviceName + "' in your BLE scanner app.");
+  Serial.println("Fursuit32 BLE advertising started. Look for 'Fursuit Kaasijs' in your BLE scanner app.");
 }
 
 void loop() {

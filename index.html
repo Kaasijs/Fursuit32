@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>PWM Control</title>
+<title>Fursuit32</title>
 <style>
   :root {
     --blue: #5BCEFA;
@@ -21,8 +21,7 @@
     margin: 0;
     min-height: 100vh;
     background:
-      radial-gradient(ellipse at top, rgba(19,18,19,0.35), rgba(10,9,10,0.88) 65%),
-      linear-gradient(180deg, rgba(10,9,10,0.55) 0%, rgba(10,9,10,0.75) 40%, rgba(10,9,10,0.92) 100%),
+      linear-gradient(180deg, rgba(0, 0, 0, 0.607) 0%, rgba(0, 0, 0, 0.707) 30%, rgba(31, 24, 29, 0.96) 100%),
       url("background.png?v=2") center top / cover no-repeat;
     background-color: var(--bg);
     color: var(--white);
@@ -46,13 +45,13 @@
     gap: 0.5rem;
   }
 
-  .icon-wrap {
+  .title-wrap {
     display: flex;
     justify-content: center;
     width: 100%;
   }
 
-  .icon-img {
+  .title-img {
     width: clamp(150px, 42vw, 230px);
     height: auto;
     filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.55));
@@ -311,126 +310,16 @@
     color: var(--text-dim);
     font-variant-numeric: tabular-nums;
   }
-
-  .hidden { display: none !important; }
-
-  button.secondary-btn {
-    font-family: inherit;
-    font-size: 0.78rem;
-    font-weight: 600;
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
-    color: var(--text-dim);
-    background: transparent;
-    border: 1px solid var(--panel-line);
-    border-radius: 8px;
-    padding: 0.65rem 1rem;
-    cursor: pointer;
-    width: 100%;
-    max-width: 480px;
-    transition: color 0.15s ease, border-color 0.15s ease;
-  }
-
-  button.secondary-btn:hover { color: var(--white); border-color: var(--text-dim); }
-
-  .setup-hint {
-    color: var(--text-dim);
-    font-size: 0.78rem;
-    line-height: 1.5;
-    margin: 0 0 1.1rem 0;
-  }
-
-  .setup-panel h2 {
-    font-size: 0.95rem;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    margin: 0 0 0.4rem 0;
-  }
-
-  .channel-row {
-    border: 1px solid var(--panel-line);
-    border-radius: 10px;
-    padding: 0.9rem;
-    margin-bottom: 0.75rem;
-  }
-
-  .channel-row-top {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    margin-bottom: 0.7rem;
-  }
-
-  .channel-label-input {
-    flex: 1;
-    font-family: inherit;
-    font-size: 0.85rem;
-    color: var(--white);
-    background: var(--bg);
-    border: 1px solid var(--panel-line);
-    border-radius: 6px;
-    padding: 0.5rem 0.6rem;
-  }
-
-  .channel-label-input:focus {
-    outline: none;
-    border-color: var(--blue);
-  }
-
-  .remove-channel-btn {
-    font-family: inherit;
-    font-size: 0.9rem;
-    color: var(--text-dim);
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    padding: 0.3rem 0.5rem;
-    line-height: 1;
-  }
-
-  .remove-channel-btn:hover { color: var(--pink); }
-
-  .pin-checkboxes {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem 1rem;
-  }
-
-  .pin-checkbox-label {
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-    font-size: 0.75rem;
-    color: var(--text-dim);
-  }
-
-  .pin-checkbox-label input { accent-color: var(--blue); }
-
-  .setup-error {
-    color: var(--pink);
-    font-size: 0.78rem;
-    margin: 0 0 0.75rem 0;
-    display: none;
-  }
-
-  .setup-error.visible { display: block; }
-
-  .setup-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 0.6rem;
-    margin-top: 1rem;
-  }
 </style>
 </head>
 <body>
 
-  <div class="icon-wrap">
-    <img src="icon.png" alt="Fursuit32" class="icon-img" id="iconImg">
+  <div class="title-wrap">
+    <img src="title.png" alt="Kaasijs" class="title-img">
   </div>
 
   <header>
-    <h1 id="deviceNameHeading">Fursuit Control</h1>
+    <h1>My Fursuit32 | Kaasijs</h1>
     <div class="status-row">
       <div class="status-dot" id="statusDot"></div>
       <span class="status-text" id="statusText">Not connected</span>
@@ -447,116 +336,72 @@
     This browser doesn't support Web Bluetooth. On iPhone, open this page inside the <strong>Bluefy</strong> app instead of Safari directly.
   </div>
 
-  <button class="connect-btn" id="connectBtn">Connect to Fursuit32</button>
+  <button class="connect-btn" id="connectBtn">Connect to fursuit</button>
 
-  <div class="panel hidden" id="sliderPanel">
-    <div class="sliders" id="slidersContainer"></div>
-  </div>
+  <div class="panel">
+    <div class="sliders">
+      <div class="slider-col pin-led">
+        <div class="slider-value" id="valLed">0</div>
+        <div class="slider-track">
+          <input type="range" class="vslider" id="sliderLed" min="0" max="255" value="0" disabled>
+        </div>
+        <div class="slider-label">LEDS</div>
+        <div class="pin-name">GPIO 25 + 26</div>
+      </div>
 
-  <button class="secondary-btn hidden" id="reconfigureBtn">Reconfigure sliders</button>
-  <button class="secondary-btn hidden" id="customizeBtn">Customize site</button>
-
-  <div class="panel setup-panel hidden" id="setupPanel">
-    <h2>Set up your sliders</h2>
-    <p class="setup-hint">Pick which pins belong to each slider, give it a name, then save. This gets stored on the Fursuit32 itself, so it'll show up the same way next time you connect from any device.</p>
-    <p class="setup-error" id="setupError"></p>
-    <div id="channelsContainer"></div>
-    <div class="setup-actions">
-      <button class="secondary-btn" id="addChannelBtn">+ Add slider</button>
-      <button class="connect-btn" id="saveConfigBtn">Save configuration</button>
-    </div>
-  </div>
-
-  <div class="panel setup-panel hidden" id="customizePanel">
-    <h2>Customize site</h2>
-    <p class="setup-hint">Changing the name restarts the Fursuit32 to re-advertise under it — you'll need to reconnect after a few seconds. Icon/background changes apply right away, no restart needed. Leave an image field blank to use the default.</p>
-    <p class="setup-error" id="customizeError"></p>
-    <input type="text" class="channel-label-input" id="nameInput" placeholder="Device name" maxlength="24" style="width: 100%; margin-bottom: 0.75rem;">
-    <input type="text" class="channel-label-input" id="iconUrlInput" placeholder="Icon image URL (optional)" style="width: 100%; margin-bottom: 0.75rem;">
-    <input type="text" class="channel-label-input" id="backgroundUrlInput" placeholder="Background image URL (optional)" style="width: 100%;">
-    <div class="setup-actions">
-      <button class="connect-btn" id="saveCustomizeBtn">Save</button>
+      <div class="slider-col pin-fan">
+        <div class="slider-value" id="valFan">0</div>
+        <div class="slider-track">
+          <input type="range" class="vslider" id="sliderFan" min="0" max="255" value="0" disabled>
+        </div>
+        <div class="slider-label">Fan</div>
+        <div class="pin-name">GPIO 27 + 22</div>
+      </div>
     </div>
   </div>
 
   <footer>
-    <a class="subtitle" href="https://github.com/Kaasijs/Fursuit32">A thingy made by Kaasijs UWU</a>
+    <a class="subtitle" href="https://github.com/Kaasijs">A thingy made by Kaasijs UWU</a>
   </footer>
 
 <script>
   const SERVICE_UUID = '12345678-1234-1234-1234-123456789abc';
-  // Fixed physical pins, in the order the ESP32 indexes them (this order
-  // matters — it must match the PINS[] array in the sketch). The config
-  // JSON refers to pins by these indices, not by GPIO number directly.
-  const PIN_LABELS = ['GPIO 25', 'GPIO 26', 'GPIO 27', 'GPIO 22'];
-  const PIN_CHAR_UUIDS = [
+  const CHAR_UUIDS = [
     '12345678-1234-1234-1234-123456789ab1',
     '12345678-1234-1234-1234-123456789ab2',
     '12345678-1234-1234-1234-123456789ab3',
     '12345678-1234-1234-1234-123456789ab4',
   ];
   const BATTERY_CHAR_UUID = '12345678-1234-1234-1234-123456789ab5';
-  const CONFIG_CHAR_UUID = '12345678-1234-1234-1234-123456789ab6';
-  const NAME_CHAR_UUID = '12345678-1234-1234-1234-123456789ab7';
-  const SITE_CHAR_UUID = '12345678-1234-1234-1234-123456789ab8';
+  const DEVICE_NAME = 'Fursuit Kaasijs';
 
   const connectBtn = document.getElementById('connectBtn');
   const statusDot = document.getElementById('statusDot');
   const statusText = document.getElementById('statusText');
   const browserWarning = document.getElementById('browserWarning');
 
-  const sliderPanel = document.getElementById('sliderPanel');
-  const slidersContainer = document.getElementById('slidersContainer');
-  const reconfigureBtn = document.getElementById('reconfigureBtn');
+  const sliderLed = document.getElementById('sliderLed');
+  const sliderFan = document.getElementById('sliderFan');
+  const valLed = document.getElementById('valLed');
+  const valFan = document.getElementById('valFan');
 
-  const setupPanel = document.getElementById('setupPanel');
-  const channelsContainer = document.getElementById('channelsContainer');
-  const addChannelBtn = document.getElementById('addChannelBtn');
-  const saveConfigBtn = document.getElementById('saveConfigBtn');
-  const setupError = document.getElementById('setupError');
-
-  const iconImg = document.getElementById('iconImg');
-  const deviceNameHeading = document.getElementById('deviceNameHeading');
-  const customizeBtn = document.getElementById('customizeBtn');
-  const customizePanel = document.getElementById('customizePanel');
-  const nameInput = document.getElementById('nameInput');
-  const iconUrlInput = document.getElementById('iconUrlInput');
-  const backgroundUrlInput = document.getElementById('backgroundUrlInput');
-  const saveCustomizeBtn = document.getElementById('saveCustomizeBtn');
-  const customizeError = document.getElementById('customizeError');
-
-  const batteryRow = document.getElementById('batteryRow');
-  const batteryFill = document.getElementById('batteryFill');
-  const batteryText = document.getElementById('batteryText');
-
-  // sliders[] is rebuilt fresh every time we render the slider panel from
-  // config — each entry pairs a UI slider with the pin characteristic
-  // UUID(s) it should write to. lastSent/writing track state for the
-  // periodic sync loop below (see SYNC_INTERVAL_MS).
-  let sliders = [];
+  // sliders[] pairs each UI slider with the characteristic UUID(s) it
+  // should write to. LED drives two physical pins (chars 1 and 2) at
+  // once; Fan drives just the third. lastSent/writing track state for
+  // the periodic sync loop below (see SYNC_INTERVAL_MS).
+  const sliders = [
+    { input: sliderLed, valueEl: valLed, charUuids: [CHAR_UUIDS[0], CHAR_UUIDS[1]], lastSent: null, writing: false },
+    { input: sliderFan, valueEl: valFan, charUuids: [CHAR_UUIDS[2], CHAR_UUIDS[3]], lastSent: null, writing: false },
+  ];
 
   // Resolved BLECharacteristic objects, keyed by UUID, filled in on connect.
   let characteristicsByUuid = {};
   let batteryCharacteristic = null;
-  let configCharacteristic = null;
-  let nameCharacteristic = null;
-  let siteCharacteristic = null;
   let bleDevice = null;
-  let currentConfig = [];  // [{label, pins:[pinIndex,...]}, ...]
-  let currentSiteSettings = { icon: '', background: '' };
-  let currentDeviceName = 'Fursuit32';
 
-  function applyIcon(url) {
-    iconImg.src = (url && url.trim()) ? url.trim() : 'icon.png';
-  }
-
-  function applyBackground(url) {
-    const bgUrl = (url && url.trim()) ? url.trim() : 'background.png?v=2';
-    document.body.style.background =
-      `radial-gradient(ellipse at top, rgba(19,18,19,0.35), rgba(10,9,10,0.88) 65%), ` +
-      `linear-gradient(180deg, rgba(10,9,10,0.55) 0%, rgba(10,9,10,0.75) 40%, rgba(10,9,10,0.92) 100%), ` +
-      `url("${bgUrl}") center top / cover no-repeat`;
-  }
+  const batteryRow = document.getElementById('batteryRow');
+  const batteryFill = document.getElementById('batteryFill');
+  const batteryText = document.getElementById('batteryText');
 
   if (!navigator.bluetooth) {
     browserWarning.style.display = 'block';
@@ -568,15 +413,11 @@
     statusDot.classList.toggle('connected', isConnected);
     statusText.classList.toggle('connected', isConnected);
     statusText.textContent = isConnected ? 'Connected' : 'Not connected';
-    connectBtn.textContent = isConnected ? 'Disconnect' : 'Connect to Fursuit32';
-
-    if (!isConnected) {
-      sliderPanel.classList.add('hidden');
-      setupPanel.classList.add('hidden');
-      reconfigureBtn.classList.add('hidden');
-      customizeBtn.classList.add('hidden');
-      customizePanel.classList.add('hidden');
-    }
+    connectBtn.textContent = isConnected ? 'Disconnect' : 'Connect to device';
+    sliders.forEach(s => {
+      s.input.disabled = !isConnected;
+      if (isConnected) s.lastSent = null;  // force a push of current position
+    });
   }
 
   function updateFill(slider) {
@@ -584,234 +425,7 @@
     slider.style.setProperty('--fill', pct + '%');
   }
 
-  // ---------- Slider panel (control view) ----------
-  // Builds one vertical slider per channel in the config. Each channel
-  // can span multiple physical pins (e.g. two LED pins moving together
-  // under one "LEDs" slider) — writes go to every pin in that channel.
-  function renderSliderPanel(config) {
-    slidersContainer.innerHTML = '';
-    sliders = config.map((channel, idx) => {
-      const col = document.createElement('div');
-      col.className = 'slider-col';
-      col.style.setProperty('--fill', '0%');
-
-      const valueEl = document.createElement('div');
-      valueEl.className = 'slider-value';
-      valueEl.textContent = '0';
-      valueEl.style.color = idx % 2 === 0 ? 'var(--blue)' : 'var(--pink)';
-
-      const track = document.createElement('div');
-      track.className = 'slider-track';
-
-      const input = document.createElement('input');
-      input.type = 'range';
-      input.className = 'vslider';
-      input.min = '0';
-      input.max = '255';
-      input.value = '0';
-
-      const labelEl = document.createElement('div');
-      labelEl.className = 'slider-label';
-      labelEl.textContent = channel.label;
-
-      const pinNameEl = document.createElement('div');
-      pinNameEl.className = 'pin-name';
-      pinNameEl.textContent = channel.pins.map(i => PIN_LABELS[i]).join(' + ');
-
-      track.appendChild(input);
-      col.append(valueEl, track, labelEl, pinNameEl);
-      slidersContainer.appendChild(col);
-
-      const gradientColor = idx % 2 === 0 ? 'var(--blue)' : 'var(--pink)';
-      const styleTag = document.createElement('style');
-      const sliderId = `dyn-slider-${idx}`;
-      input.id = sliderId;
-      styleTag.textContent = `#${sliderId}::-webkit-slider-runnable-track { background: linear-gradient(0deg, ${gradientColor} var(--fill, 0%), var(--panel-line) var(--fill, 0%)); }`;
-      document.head.appendChild(styleTag);
-
-      input.addEventListener('input', () => {
-        valueEl.textContent = input.value;
-        const pct = (input.value / input.max) * 100;
-        input.style.setProperty('--fill', pct + '%');
-      });
-
-      return {
-        input,
-        valueEl,
-        charUuids: channel.pins.map(i => PIN_CHAR_UUIDS[i]),
-        lastSent: null,
-        writing: false,
-      };
-    });
-
-    sliderPanel.classList.remove('hidden');
-    reconfigureBtn.classList.remove('hidden');
-    setupPanel.classList.add('hidden');
-    customizePanel.classList.add('hidden');
-  }
-
-  // ---------- Setup wizard ----------
-  function renderSetupPanel(existingConfig) {
-    channelsContainer.innerHTML = '';
-    setupError.classList.remove('visible');
-
-    const seed = existingConfig.length > 0
-      ? existingConfig
-      : [{ label: '', pins: [] }];
-
-    seed.forEach(channel => addChannelRow(channel.label, channel.pins));
-
-    setupPanel.classList.remove('hidden');
-    sliderPanel.classList.add('hidden');
-    reconfigureBtn.classList.add('hidden');
-    customizePanel.classList.add('hidden');
-  }
-
-  function addChannelRow(label = '', selectedPins = []) {
-    const row = document.createElement('div');
-    row.className = 'channel-row';
-
-    const top = document.createElement('div');
-    top.className = 'channel-row-top';
-
-    const labelInput = document.createElement('input');
-    labelInput.type = 'text';
-    labelInput.className = 'channel-label-input';
-    labelInput.placeholder = 'Slider name (e.g. LEDs)';
-    labelInput.maxLength = 20;
-    labelInput.value = label;
-
-    const removeBtn = document.createElement('button');
-    removeBtn.className = 'remove-channel-btn';
-    removeBtn.textContent = '✕';
-    removeBtn.type = 'button';
-    removeBtn.addEventListener('click', () => row.remove());
-
-    top.append(labelInput, removeBtn);
-
-    const checkboxWrap = document.createElement('div');
-    checkboxWrap.className = 'pin-checkboxes';
-
-    PIN_LABELS.forEach((pinLabel, i) => {
-      const wrap = document.createElement('label');
-      wrap.className = 'pin-checkbox-label';
-
-      const checkbox = document.createElement('input');
-      checkbox.type = 'checkbox';
-      checkbox.value = String(i);
-      checkbox.checked = selectedPins.includes(i);
-
-      wrap.append(checkbox, document.createTextNode(pinLabel));
-      checkboxWrap.appendChild(wrap);
-    });
-
-    row.append(top, checkboxWrap);
-    channelsContainer.appendChild(row);
-  }
-
-  addChannelBtn.addEventListener('click', () => addChannelRow());
-
-  saveConfigBtn.addEventListener('click', async () => {
-    setupError.classList.remove('visible');
-
-    const rows = Array.from(channelsContainer.querySelectorAll('.channel-row'));
-    const config = [];
-    const usedPins = new Set();
-
-    for (const row of rows) {
-      const label = row.querySelector('.channel-label-input').value.trim();
-      const pins = Array.from(row.querySelectorAll('.pin-checkboxes input:checked'))
-        .map(cb => parseInt(cb.value, 10));
-
-      if (!label) { setupError.textContent = 'Every slider needs a name.'; setupError.classList.add('visible'); return; }
-      if (pins.length === 0) { setupError.textContent = `"${label}" needs at least one pin selected.`; setupError.classList.add('visible'); return; }
-
-      for (const p of pins) {
-        if (usedPins.has(p)) {
-          setupError.textContent = `${PIN_LABELS[p]} is used by more than one slider — each pin can only belong to one.`;
-          setupError.classList.add('visible');
-          return;
-        }
-        usedPins.add(p);
-      }
-
-      config.push({ label, pins });
-    }
-
-    if (config.length === 0) {
-      setupError.textContent = 'Add at least one slider before saving.';
-      setupError.classList.add('visible');
-      return;
-    }
-
-    if (!configCharacteristic) return;
-
-    try {
-      const json = JSON.stringify(config);
-      await configCharacteristic.writeValue(new TextEncoder().encode(json));
-      currentConfig = config;
-      renderSliderPanel(config);
-    } catch (err) {
-      console.error('Failed to save config:', err);
-      setupError.textContent = 'Saving to the Fursuit32 failed — try again.';
-      setupError.classList.add('visible');
-    }
-  });
-
-  reconfigureBtn.addEventListener('click', () => {
-    renderSetupPanel(currentConfig);
-  });
-
-  customizeBtn.addEventListener('click', () => {
-    customizeError.classList.remove('visible');
-    nameInput.value = currentDeviceName;
-    iconUrlInput.value = currentSiteSettings.icon || '';
-    backgroundUrlInput.value = currentSiteSettings.background || '';
-    customizePanel.classList.remove('hidden');
-    setupPanel.classList.add('hidden');
-    sliderPanel.classList.add('hidden');
-  });
-
-  saveCustomizeBtn.addEventListener('click', async () => {
-    customizeError.classList.remove('visible');
-
-    const newName = nameInput.value.trim();
-    if (!newName) {
-      customizeError.textContent = 'Device name can\'t be empty.';
-      customizeError.classList.add('visible');
-      return;
-    }
-
-    const newIcon = iconUrlInput.value.trim();
-    const newBackground = backgroundUrlInput.value.trim();
-    const nameChanged = newName !== currentDeviceName;
-
-    try {
-      // Site settings first — these apply instantly, no restart.
-      const siteJson = JSON.stringify({ icon: newIcon, background: newBackground });
-      await siteCharacteristic.writeValue(new TextEncoder().encode(siteJson));
-      currentSiteSettings = { icon: newIcon, background: newBackground };
-      applyIcon(newIcon);
-      applyBackground(newBackground);
-
-      if (nameChanged) {
-        customizeError.textContent = 'Saving new name — Fursuit32 is restarting. Reconnect in a few seconds.';
-        customizeError.classList.add('visible');
-        await nameCharacteristic.writeValue(new TextEncoder().encode(newName));
-        // The ESP32 restarts itself right after this write, which will
-        // drop the connection — onDisconnected() handles resetting the UI.
-      } else {
-        customizePanel.classList.add('hidden');
-        if (currentConfig.length > 0) renderSliderPanel(currentConfig);
-      }
-    } catch (err) {
-      console.error('Failed to save customization:', err);
-      customizeError.textContent = nameChanged
-        ? 'Name change failed to send — it may still restart. Reconnect and check.'
-        : 'Saving failed — try again.';
-      customizeError.classList.add('visible');
-    }
-  });
+  sliders.forEach(s => updateFill(s.input));
 
   async function connect() {
     try {
@@ -826,57 +440,12 @@
       const service = await server.getPrimaryService(SERVICE_UUID);
 
       characteristicsByUuid = {};
-      for (const uuid of PIN_CHAR_UUIDS) {
+      for (const uuid of CHAR_UUIDS) {
         characteristicsByUuid[uuid] = await service.getCharacteristic(uuid);
       }
       batteryCharacteristic = await service.getCharacteristic(BATTERY_CHAR_UUID);
-      configCharacteristic = await service.getCharacteristic(CONFIG_CHAR_UUID);
-      nameCharacteristic = await service.getCharacteristic(NAME_CHAR_UUID);
-      siteCharacteristic = await service.getCharacteristic(SITE_CHAR_UUID);
 
       setConnected(true);
-      customizeBtn.classList.remove('hidden');
-
-      // Fetch device name and apply it as the page heading.
-      try {
-        const nameValue = await nameCharacteristic.readValue();
-        currentDeviceName = new TextDecoder().decode(nameValue) || 'Fursuit32';
-        deviceNameHeading.textContent = currentDeviceName;
-      } catch (err) {
-        console.error('Failed to read device name:', err);
-      }
-
-      // Fetch icon/background URLs and apply them.
-      try {
-        const siteValue = await siteCharacteristic.readValue();
-        const siteText = new TextDecoder().decode(siteValue);
-        currentSiteSettings = JSON.parse(siteText || '{}');
-      } catch (err) {
-        console.error('Failed to read site settings, using defaults:', err);
-        currentSiteSettings = { icon: '', background: '' };
-      }
-      applyIcon(currentSiteSettings.icon);
-      applyBackground(currentSiteSettings.background);
-
-      // Read whatever config the Fursuit32 currently has saved. Empty
-      // array means nobody's configured it yet — show the wizard.
-      // Otherwise render sliders straight from what's stored on-device.
-      let config = [];
-      try {
-        const configValue = await configCharacteristic.readValue();
-        const configText = new TextDecoder().decode(configValue);
-        config = JSON.parse(configText || '[]');
-      } catch (err) {
-        console.error('Failed to read config, treating as unconfigured:', err);
-        config = [];
-      }
-
-      currentConfig = config;
-      if (config.length === 0) {
-        renderSetupPanel([]);
-      } else {
-        renderSliderPanel(config);
-      }
 
       // Don't wait for the first poll interval — show battery right away.
       try {
@@ -899,10 +468,6 @@
     setConnected(false);
     characteristicsByUuid = {};
     batteryCharacteristic = null;
-    configCharacteristic = null;
-    nameCharacteristic = null;
-    siteCharacteristic = null;
-    sliders = [];
     batteryRow.classList.remove('visible');
     batteryText.textContent = '--%';
   }
@@ -916,6 +481,16 @@
     }
   });
 
+  // 'input' just updates the on-screen number/fill instantly, for a
+  // responsive feel — it does NOT write over BLE. Actual writes happen
+  // below in the periodic sync loop.
+  sliders.forEach(({ input, valueEl }) => {
+    input.addEventListener('input', () => {
+      valueEl.textContent = input.value;
+      updateFill(input);
+    });
+  });
+
   // Periodic sync: every SYNC_INTERVAL_MS, check each slider's current
   // position and write it only if it changed since the last successful
   // write, and only if that slider isn't already mid-write. This is
@@ -927,7 +502,7 @@
 
   setInterval(() => {
     sliders.forEach(async (s) => {
-      if (s.writing) return;
+      if (s.input.disabled || s.writing) return;
 
       const current = parseInt(s.input.value, 10);
       if (current === s.lastSent) return;

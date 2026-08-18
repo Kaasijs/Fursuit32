@@ -446,7 +446,7 @@
   </div>
 
   <header>
-    <h1 id="deviceNameHeading">Welcome to Fursuit32!</h1>
+    <h1 id="deviceNameHeading">Fursuit32</h1>
     <div class="status-row">
       <div class="status-dot" id="statusDot"></div>
       <span class="status-text" id="statusText">Not connected</span>
@@ -464,6 +464,15 @@
   </div>
 
   <button class="connect-btn" id="connectBtn">Connect to Fursuit32</button>
+
+  <esp-web-install-button
+    id="flashButton"
+    class="hidden"
+    manifest="firmware/manifest.json">
+    <button slot="activate" class="secondary-btn">Flash latest firmware (USB)</button>
+    <span slot="unsupported"></span>
+    <span slot="not-allowed"></span>
+  </esp-web-install-button>
 
   <div class="panel hidden" id="sliderPanel">
     <div class="sliders" id="slidersContainer"></div>
@@ -513,6 +522,17 @@
     <a class="subtitle" href="https://github.com/Kaasijs/Fursuit32">A thingy made by Kaasijs UWU</a>
   </footer>
 
+<script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
+<script>
+  // ESP Web Tools flashing only works over USB via the Web Serial API,
+  // which exists in Chrome/Edge desktop and nowhere else — not iPhone
+  // Safari, not Bluefy (which only bridges Web Bluetooth, a different
+  // API), not Firefox. Feature-detect and just leave the button hidden
+  // everywhere else, rather than showing a button that would fail.
+  if ('serial' in navigator) {
+    document.getElementById('flashButton').classList.remove('hidden');
+  }
+</script>
 <script>
   const SERVICE_UUID = '12345678-1234-1234-1234-123456789abc';
 
@@ -851,14 +871,29 @@
       const server = await bleDevice.gatt.connect();
       const service = await server.getPrimaryService(SERVICE_UUID);
 
+      // One batch discovery call instead of 22 sequential ones. Desktop
+      // Chrome tolerates many individual getCharacteristic() round-trips
+      // fine, but iOS's Bluetooth stack (which Bluefy has to work
+      // through) is much stricter/slower about long sequential discovery
+      // chains and can time out partway through — this was the actual
+      // cause of "connects but the site fails" on iPhone.
+      const allCharacteristics = await service.getCharacteristics();
+      const byUuid = {};
+      allCharacteristics.forEach(c => { byUuid[c.uuid.toLowerCase()] = c; });
+
       characteristicsByUuid = {};
       for (const uuid of PIN_CHAR_UUIDS) {
-        characteristicsByUuid[uuid] = await service.getCharacteristic(uuid);
+        characteristicsByUuid[uuid] = byUuid[uuid.toLowerCase()];
       }
-      batteryCharacteristic = await service.getCharacteristic(BATTERY_CHAR_UUID);
-      configCharacteristic = await service.getCharacteristic(CONFIG_CHAR_UUID);
-      nameCharacteristic = await service.getCharacteristic(NAME_CHAR_UUID);
-      siteCharacteristic = await service.getCharacteristic(SITE_CHAR_UUID);
+      batteryCharacteristic = byUuid[BATTERY_CHAR_UUID.toLowerCase()];
+      configCharacteristic = byUuid[CONFIG_CHAR_UUID.toLowerCase()];
+      nameCharacteristic = byUuid[NAME_CHAR_UUID.toLowerCase()];
+      siteCharacteristic = byUuid[SITE_CHAR_UUID.toLowerCase()];
+
+      if (!batteryCharacteristic || !configCharacteristic || !nameCharacteristic || !siteCharacteristic
+          || PIN_CHAR_UUIDS.some(uuid => !characteristicsByUuid[uuid])) {
+        throw new Error('One or more expected characteristics were not found on the device.');
+      }
 
       setConnected(true);
       customizeBtn.classList.remove('hidden');
